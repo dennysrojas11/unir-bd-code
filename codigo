@@ -1,0 +1,22 @@
+--mostrar tablespaces disponibles--
+select tablespace_name from dba_tablespaces;
+
+alter session set"_ORACLE_SCRIPT"=true;
+
+--creación de usuario--
+CREATE USER dennys IDENTIFIED BY dennys
+    DEFAULT TABLESPACE USERS 
+    TEMPORARY TABLESPACE TEMP
+    QUOTA UNLIMITED ON USERS; 
+
+--privilegios-- 
+CREATE ROLE usuario_db;
+
+GRANT CREATE session to usuario_db;
+GRANT CREATE table TO usuario_db;
+GRANT CREATE view TO usuario_db;
+GRANT CREATE procedure TO usuario_db;
+GRANT CREATE trigger TO usuario_db;
+
+--dar privilegios a usuario--
+GRANT usuario_db TO dennys; 
