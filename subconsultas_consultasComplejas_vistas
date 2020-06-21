@@ -1,0 +1,121 @@
+--subconsulta--
+--alumnos que están matriculados en las mismas asignaturas que otro
+insert into alumnos values(7,'Leopoldo López García','Madrid');
+insert into matriculas values(7,5,'2017/2018', 'mañana');
+
+select distinct a.nombre, localidad
+from alumnos a, matriculas m
+where a.idAlu=m.idAlu and
+    idAsi in (select idAsi
+                from matriculas
+                where idAlu=7)
+order by a.nombre;
+
+--ver alumnos que más creditos tiene matriculados en el turno de noche
+select * from matriculas where turno='noche';
+
+insert into matriculas values(7,6,'2017/2018','noche');
+
+select alu.nombre
+from alumnos alu, asignaturas asi, matriculas m
+where alu.idAlu=m.idAlu and
+        asi.idAsi=m.idAsi and
+        turno='noche'
+group by alu.nombre
+having sum(creditos) >= all (select sum(creditos)
+                                from matriculas m, asignaturas a
+                                where m.idAsi=a.idASi and
+                                turno='noche'
+                                group by idAlu);
+                                
+insert into matriculas values(7,1,'2017/2018','noche');
+insert into matriculas values(7,2,'2017/2018','noche');
+insert into matriculas values(7,3,'2017/2018','noche');
+
+select alu.nombre
+from alumnos alu, asignaturas asi, matriculas m
+where alu.idAlu=m.idAlu and
+        asi.idAsi=m.idAsi and
+        turno='noche'
+group by alu.nombre
+having sum(creditos) >= all (select sum(creditos)
+                                from matriculas m, asignaturas a
+                                where m.idAsi=a.idASi and
+                                turno='noche'
+                                group by idAlu);
+                                
+--CONSULTAS COMPLEJAS
+--departamento con menos créditos de impartición--
+with creditos_departamento(departamento, creditos) as 
+    (select departamento, sum(creditos)
+    from asignaturas a, profesores p, imparte i
+    where a.idASi=i.idASi and
+            p.idPro=i.idPro
+    group by departamento)
+select min(creditos) as "CREDITOS MÍNIMOS"
+from creditos_departamento;
+
+--departamento con más créditos de impartición--
+with creditos_departamento(departamento, creditos) as 
+    (select departamento, sum(creditos)
+    from asignaturas a, profesores p, imparte i
+    where a.idASi=i.idASi and
+            p.idPro=i.idPro
+    group by departamento)
+select max(creditos) as "CREDITOS MÁXIMOS"
+from creditos_departamento;
+
+--máximo de asignaturas distintas
+with asignaturas_departamento(departamento, nAsignaturas) as 
+    (select departamento, count(distinct idAsi)as "ASIGNATURAS DISTINTAS"
+    from profesores p, imparte i
+    where p.idPro=i.idPro
+    group by departamento)
+select max(nAsignaturas) as "MÁXIMO ASIGNATURAS"
+from asignaturas_departamento;
+
+--minimo asignaturas departamento
+with asignaturas_departamento(departamento, nAsignaturas) as 
+    (select departamento, count(distinct idAsi)as "ASIGNATURAS DISTINTAS"
+    from profesores p, imparte i
+    where p.idPro=i.idPro
+    group by departamento)
+select min(nAsignaturas) as "MÍNIMO ASIGNATURAS"
+from asignaturas_departamento;
+
+--VISTAS
+--listado de profesores que imparten cada asignatura
+create view profesores_imparte as
+    (select p.idPro, p.nombre as "NOMBRE PROFESOR", a.idAsi, a.nombre as "NOMBRE ASIGNATURA", anio, turno
+    from profesores p, asignaturas a, imparte i
+    where p.idPro=i.idPro and
+        a.idAsi=i.idASi);
+    
+select * from profesores_imparte order by idAsi; 
+
+create or replace view profesores_imparte as
+    (select p.nombre as "NOMBRE PROFESOR", a.nombre as "NOMBRE ASIGNATURA", anio, turno
+    from profesores p, asignaturas a, imparte i
+    where p.idPro=i.idPro and
+        a.idAsi=i.idAsi)
+    order by p.nombre; 
+    
+select * from profesores_imparte;
+--generar una vista de profesores de Inteligencia Artificial
+create view profesores_IA as
+    (select *
+    from profesores
+    where departamento='Inteligencia Artificial');
+    
+select * from profesores_IA;
+
+--generar una vista con una consulta habitual
+create or replace view creditos_matriculados as
+    (select turno, sum(creditos) as "TOTAL CREDITOS"
+    from matriculas, asignaturas
+    where matriculas.idAsi=asignaturas.idAsi
+    group by turno);
+    
+select * from creditos_matriculados order by turno;
+
+select * from creditos_matriculados where turno= 'tarde';
