@@ -1,0 +1,89 @@
+--mostrar tablas--
+select * from alumnos;
+select * from asignaturas;
+select * from imparte;
+select * from matriculas;
+select * from profesores;
+
+--escoger atributos--
+select nombre,curso from asignaturas;
+select idPro, nombre from profesores;
+
+--poner condiciones sobre una tabla
+select * from alumnos where localidad='Madrid';
+select * from profesores where departamento like '%software%'
+
+
+--combinar datos de tablas--
+--listar, por departamento, los profesores que da cada asignatura en el turno de la mañana 
+select profesores.departamento, profesores.nombre, asignaturas.nombre, curso
+from profesores, asignaturas, imparte
+where profesores.idPro=imparte.idPro and
+        asignaturas.idAsi=imparte.idAsi and
+        turno='mañana'
+order by profesores.departamento, profesores.nombre;
+
+--utilizando alias para facilitar el trabajo y la lectura de resultados
+select curso, a.nombre as "ASIGNATURA",turno, p.nombre as "PROFESOR"
+from profesores p, asignaturas a, imparte i
+where p.idPro=i.idPro and
+        a.idAsi=i.idAsi
+order by curso,a.nombre;
+
+--funciones de agregación 
+select a.nombre as "ALUMNOS TURNO TARDE", count(idAsi) as "ASIGNATURAS MATRICULADAS"
+from alumnos a, matriculas m
+where a.idAlu=m.idAlu and
+        anio='2017/2018' and
+        turno='tarde'
+group by a.nombre;
+
+--vamos a añadir un campo más a la tabla asignaturas para poder usar más funciones
+alter table asignaturas add creditos number(1);
+update asignaturas set creditos=6 where curso <> 2;
+update asignaturas set creditos=4 where curso=2;
+insert into asignaturas values (7,'Redes de ordenadores',2,6);
+alter table asignaturas modify creditos not null;
+insert into asignaturas(idAsi,nombre,curso) values (7,'Error',2);
+insert into asignaturas values (8,'Inteligencia artificial',2,4);
+insert into asignaturas values (6,'Matematica',2,4);
+
+--numero de creditos matriculados de cada alumno--
+select m.idAlu,alu.nombre, sum(creditos) as "CREDITOS MATRICULADOS"
+from asignaturas a, matriculas m, alumnos alu
+where a.idAsi=m.idAsi and
+        alu.idAlu=m.idAlu and
+        anio='2017/2018'
+group by m.idAlu, alu.nombre
+order by m.idAlu;
+
+--matriculamos a alguien más--
+insert into matriculas values(5,6,'2017/2018','tarde');
+insert into alumnos values (6,'Antonio Arostegui Arostegui','Vigo');
+insert into matriculas values(6,4,'2017/2018','noche');
+insert into matriculas values(6,5,'2017/2018','noche');
+insert into matriculas values(6,6,'2017/2018','noche');
+
+select m.idAlu, alu.nombre, sum(creditos) as "CREDITOS MATRICULADOS"
+from asignaturas a ,matriculas m, alumnos alu
+where a.idAsi=m.idAsi and
+        alu.idAlu=m.idAlu and
+        anio='2017/2018'
+group by m.idAlu, alu.nombre
+order by m.idAlu;
+
+--queremos ver el numero de creditos que hay matriculados en cada uno de los turno
+select turno, sum(creditos) as "TOTAL CREDITOS"
+from matriculas, asignaturas
+where matriculas.idAsi=asignaturas.idAsi
+group by turno;
+
+--ponemos condiciones sobre la agregación
+select m.idAlu, alu.nombre, sum(creditos) as "CREDITOS MATRICULADOS"
+from asignaturas a ,matriculas m, alumnos alu
+where a.idAsi=m.idAsi and
+        alu.idAlu=m.idAlu and
+        anio='2017/2018'
+group by m.idAlu, alu.nombre
+having sum(creditos)<20
+order by m.idAlu;
