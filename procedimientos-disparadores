@@ -1,0 +1,95 @@
+set serveroutput on;
+
+insert into alumnos values (10,'Arturo de la Rosa','Logroño');
+
+--procedimiento para matricular 
+create or replace procedure matricular (nombreAlumno in alumnos.nombre%type,
+                                        nombreAsignatura in asignaturas.nombre%type,
+                                        turno in matriculas.turno%type) IS
+    v_idAlu alumnos.idAlu%type;
+    v_idAsi asignaturas.idAsi%type;
+    
+    BEGIN 
+        begin 
+            --buscamos el alumno
+            select idAlu
+            into v_idAlu
+            from alumnos
+            where nombre=nombreAlumno;
+            
+            exception
+            when no_data_found then
+                raise_application_error(-20000, 'Alumno no encontrado');
+        end;
+        
+        begin 
+            --buscamos la asignatura
+            select idAsi
+            into v_idAsi
+            from asignaturas
+            where nombre=nombreAsignatura;
+            
+             exception
+            when no_data_found then
+                raise_application_error(-20001, 'Asignatura no encontrada');
+        end;
+        
+        insert into matriculas values (v_idAlu, v_idAsi, '2017/2018',turno);
+        dbms_output.put_line('Alumno matriculado');
+        
+    END;
+    
+--ejecutamos el procedimiento
+begin 
+    matricular('Arturo de la Rosa', 'Ingeniería del software','mañana');
+    matricular('Arturo de la Rosa', 'Gestión de proyectos','mañana');
+    matricular('Arturo de la Rosa', 'Inteligencia artificial','mañana');
+end;
+
+--Triggers--
+--no se puede matricular a un alumno en diferentes turnos
+create or replace trigger matriculas_turnos
+before insert or update on matriculas
+for each row
+
+declare 
+    turno_anterior matriculas.turno%type;
+    cambia boolean;
+    
+    cursor turnos(v_idAlu in matriculas.idAlu%type, v_turno in matriculas.turno%type) is
+        select distinct turno
+        from matriculas 
+        where idAlu=v_idAlu
+         and anio='2017/2018';
+         
+begin 
+    cambia:=false;
+    open turnos(:new.idAlu, :new.turno);
+    
+    loop
+        fetch turnos into turno_anterior;
+        exit when turnos%notfound;
+        
+        if turno_anterior<>:new.turno then
+            cambia:=true;
+        end if;
+    end loop;
+    
+    close turnos;
+    
+    if(cambia=true) then 
+        raise_application_error(-20002,'No se puede matricular al alumno en un turno distinto del actual ---->'||turno_anterior);
+    end if;
+end;
+
+--matriculamos de nuevo
+delete from matriculas where idAlu=10;
+
+begin
+    matricular('Arturo de la Rosa', 'Ingeniería del software','mañana');
+    matricular('Arturo de la Rosa', 'Gestión de proyectos','mañana');  
+end;
+
+begin
+    matricular('Arturo de la Rosa', 'Inteligencia artificial','tarde');  
+end;
